@@ -1,12 +1,15 @@
+## just a fork
+I'm just experimenting trying to set up a metrics server.
+
 # InfluxDB + Grafana sandbox
 
 Runs a VM with influxdb and grafana. You can use dashboard.yml and roles to install in a production server, just tune influxdb address.
 
 # Requirements
 
-    - Vagrant
-    - Ansible installed locally
-    - Internet connection
+- Vagrant
+- ~~Ansible installed locally~~ Ansible is installed and executed inside the VM
+- Internet connection
 
 # Usage
 ## Locally with Vagrant
