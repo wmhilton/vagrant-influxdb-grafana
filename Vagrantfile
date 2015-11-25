@@ -2,6 +2,8 @@
 # vi: set ft=ruby :
 
 VAGRANTFILE_API_VERSION = "2"
+puts "DIGITALOCEAN_TOKEN = #{ENV['DIGITALOCEAN_TOKEN']}"
+# Tip: Run 'vagrant plugin install vagrant-vbguest'
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
@@ -11,8 +13,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ubuntu.vm.network "forwarded_port", :guest => 8083, :host => 8083
     ubuntu.vm.network "forwarded_port", :guest => 8086, :host => 8086
-    ubuntu.vm.network "forwarded_port", :guest => 8090, :host => 8090
-    ubuntu.vm.network "forwarded_port", :guest => 8099, :host => 8099
+    ubuntu.vm.network "forwarded_port", :guest => 3000, :host => 3000
 
     ubuntu.vm.provision "shell" do |s|
       s.inline = "sudo apt-get install ansible -y"
@@ -24,6 +25,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.provider "virtualbox" do |v|
     v.customize ["modifyvm", :id, "--memory", "1024"]
+  end
+
+  config.vm.provider "digital_ocean" do |provider, override|
+    override.ssh.private_key_path = "~/.ssh/digital_ocean"
+    override.vm.box = "digital_ocean"
+    #override.vm.box_url = "https://github.com/smdahlen/vagrant-digitalocean/raw/master/box/digital_ocean.box"
+
+    provider.token = ENV['DIGITALOCEAN_TOKEN']
+    provider.image = "ubuntu-14-04-x64"
+    provider.region = "nyc3"
+    provider.size = '1gb'
+    provider.name = 'influxdb'
+    provider.private_networking = true
   end
 
 end

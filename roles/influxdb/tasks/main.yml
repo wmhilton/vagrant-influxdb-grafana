@@ -1,19 +1,33 @@
 - name: fetch influxdb
-  get_url: url=http://s3.amazonaws.com/influxdb/influxdb_latest_amd64.deb
-           dest=/tmp/influxdb_latest_amd64.deb
+  get_url: url=http://influxdb.s3.amazonaws.com/influxdb_0.9.5_amd64.deb
+           dest=/tmp/influxdb_amd64.deb
 
 - name: install influxdb
-  shell: dpkg -i /tmp/influxdb_latest_amd64.deb
+  shell: dpkg -i /tmp/influxdb_amd64.deb
+
+- name: enable authentication
+  lineinfile: dest=/etc/influxdb/influxdb.conf regexp="^  auth-enabled" line="  auth-enabled = true" state=present
 
 - name: setup influxdb service
   service: name=influxdb state=started enabled=yes
 
-- name: wait 10 seconds for the service get up
-  shell: sleep 10
+- name: wait for the service get up
+  wait_for: port=8086 delay=3
+
+- name: setup admin_user
+  shell: influx -execute="CREATE USER {{ influxdb.admin_user }} WITH PASSWORD '{{ influxdb.admin_pass }}' WITH ALL PRIVILEGES"
+
+- name: setup grafana_user
+  shell: influx -username '{{ influxdb.admin_user }}' -password '{{ influxdb.admin_pass }}' -execute="CREATE USER {{ influxdb.grafana_user }} WITH PASSWORD '{{ influxdb.grafana_pass }}'"
 
 - name: setup databases
-  shell: "curl -X POST 'http://localhost:8086/db?u={{ influxdb.username }}&p={{ influxdb.password }}' -d '{\"name\": \"{{ item }}\"}'"
-  with_items: 
-    - "{{ influxdb.dbname }}"
-    - "{{ grafana.dbname }}"
+  shell: influx -username '{{ influxdb.admin_user }}' -password '{{ influxdb.admin_pass }}' -execute="CREATE DATABASE {{ influxdb.dbname }}"
 
+- name: grant privileges
+  shell: influx -username '{{ influxdb.admin_user }}' -password '{{ influxdb.admin_pass }}' -execute="GRANT READ ON {{ influxdb.dbname }} TO {{ influxdb.grafana_user }}"
+
+- name: setup client
+  shell: influx -username '{{ influxdb.admin_user }}' -password '{{ influxdb.admin_pass }}' -execute="CREATE USER {{ influxdb.client_user }} WITH PASSWORD '{{ influxdb.client_pass }}'"
+
+- name: grant privileges
+  shell: influx -username '{{ influxdb.admin_user }}' -password '{{ influxdb.admin_pass }}' -execute="GRANT ALL ON {{ influxdb.dbname }} TO {{ influxdb.client_user }}"

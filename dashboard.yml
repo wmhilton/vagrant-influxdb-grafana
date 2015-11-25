@@ -3,16 +3,18 @@
   vars:
     grafana:
       dbname: grafana
-      username: programmer
-      password: change_me_from_cucamonga
+      admin_pass: admin
     influxdb:
       address: 192.168.33.21
-      dbname: testdb
-      username: root
-      password: root
+      dbname: logs
+      admin_user: root
+      admin_pass: root
+      grafana_user: grafana
+      grafana_pass: grafana
+      client_user: logger
+      client_pass: logger
   roles:
-    - common
-    - python
-    - nginx
+    #- common
+    #- python
     - influxdb
     - grafana

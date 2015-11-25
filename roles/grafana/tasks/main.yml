@@ -1,21 +1,62 @@
-- name: download latest grafana
-  get_url: url=http://grafanarel.s3.amazonaws.com/grafana-1.7.0.tar.gz dest=/tmp/grafana-1.7.0.tar.gz
+# - name: Update CA Certs
+#   apt: name=ca-certificates state=latest update_cache=yes
+#
+# - name: Update CA Certs
+#   shell: update-ca-certificates
+#   sudo: true
 
-- name: opt directory must exists
-  file:
-    path: /opt/
-    state: directory
+# - name: Add the signing key
+#   apt_key: id=D59097AB url=https://packagecloud.io/gpg.key state=present validate_certs=no
+#
+# - name: Install prerequisites
+#   apt: name={{ item }} state=present update_cache=yes
+#   with_items:
+#     - adduser
+#     - libfontconfig
+#     - apt-transport-https
+#
+# - name: Add grafana repository
+#   apt_repository: repo='deb https://packagecloud.io/grafana/stable/debian/ wheezy main' state=present
+#
+# - name: Grrrrr
+#   shell: apt-get update
+#   sudo: true
 
-- name: untar grafana
-  unarchive: src=/tmp/grafana-1.7.0.tar.gz dest=/opt copy=no
+- name: Install prerequisites
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+    - adduser
+    - libfontconfig
 
-- name: configure grafana
-  template: src=config.js dest=/opt/grafana-1.7.0/config.js 
+- name: fetch grafana
+  get_url: url=http://grafanarel.s3.amazonaws.com/builds/grafana_2.5.0_amd64.deb
+           dest=/tmp/grafana_amd64.deb
 
-- name: copy nginx configuration for grafana
-  template: src=nginx-grafana.conf.j2 dest=/etc/nginx/sites-available/grafana.conf
+- name: Install grafana
+  shell: dpkg -i /tmp/grafana_amd64.deb
 
-- name: enable site
-  file: src=/etc/nginx/sites-available/grafana.conf dest=/etc/nginx/sites-enabled/grafana.conf state=link
-  notify:
-    - restart nginx
+- name: start the grafana-server service
+  service: name=grafana-server state=started enabled=yes
+
+- name: wait for the service get up
+  wait_for: port=3000 delay=3
+
+- name: change admin password
+  shell: >
+    curl -X PUT -u admin:admin -H "Content-Type: application/json" -d '{
+        "password":"{{ grafana.admin_pass }}"
+    }' http://localhost:3000/api/user/password
+
+- name: add influxdb source
+  shell: >
+    curl -X POST -u admin:{{ grafana.admin_pass }} -H "Content-Type: application/json" -d '{
+        "name":"influxdb",
+        "type":"influxdb",
+        "url":"http://localhost:8086",
+        "access":"proxy",
+        "isDefault":true,
+        "database":"{{ influxdb.dbname }}",
+        "user":"{{ influxdb.grafana_user }}",
+        "password":"{{ influxdb.grafana_pass }}",
+        "basicAuth":false
+    }' http://localhost:3000/api/datasources
