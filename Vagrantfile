@@ -5,6 +5,11 @@ VAGRANTFILE_API_VERSION = "2"
 puts "DIGITALOCEAN_TOKEN = #{ENV['DIGITALOCEAN_TOKEN']}"
 # Tip: Run 'vagrant plugin install vagrant-vbguest'
 
+## Random password generator (work in progress)
+#require 'securerandom'
+#bob = SecureRandom.base64
+#puts bob
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.define "influxdb-grafana-ubuntu" do |ubuntu|
@@ -27,10 +32,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     v.customize ["modifyvm", :id, "--memory", "1024"]
   end
 
+  # Tip: Run 'vagrant plugin install vagrant-digitalocean'
+  #      And 'vagrant box add digital_ocean https://github.com/smdahlen/vagrant-digitalocean/raw/master/box/digital_ocean.box'
   config.vm.provider "digital_ocean" do |provider, override|
-    override.ssh.private_key_path = "~/.ssh/digital_ocean"
+    # Tip: Run 'ssh-keygen -f ~/.ssh/Vagrant'
+    override.ssh.private_key_path = "~/.ssh/Vagrant"
     override.vm.box = "digital_ocean"
-    #override.vm.box_url = "https://github.com/smdahlen/vagrant-digitalocean/raw/master/box/digital_ocean.box"
+    override.vm.box_url = "https://github.com/smdahlen/vagrant-digitalocean/raw/master/box/digital_ocean.box"
 
     provider.token = ENV['DIGITALOCEAN_TOKEN']
     provider.image = "ubuntu-14-04-x64"
@@ -38,6 +46,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     provider.size = '1gb'
     provider.name = 'influxdb'
     provider.private_networking = true
+
+    provider.vm.provision "shell" do |s|
+      s.inline = "sudo apt-get install ansible -y"
+    end
+    provider.vm.provision "shell" do |s|
+      s.inline = "ansible-playbook -i \"localhost,\" -c local /vagrant/dashboard.yml"
+    end
   end
 
 end

@@ -60,3 +60,12 @@
         "password":"{{ influxdb.grafana_pass }}",
         "basicAuth":false
     }' http://localhost:3000/api/datasources
+
+#- name: install rinetd Redirect Internet Daemon
+#  apt: name=rinetd state=present
+#
+#- name: configure port forwarding
+#  lineinfile: >
+#    dest=/etc/rinetd.conf
+#    insertafter="# bindadress    bindport  connectaddress  connectport"
+#    line       ="0.0.0.0         80        127.0.0.1       3000"
