@@ -1,0 +1,5 @@
+#- file: path=/opt/statsd state=directory state=absent
+- apt: pkg=git
+- git: repo=https://github.com/wmhilton/statsd depth=1 dest=/opt/statsd
+- copy: src=statsd.conf dest=/etc/statsd.conf
+- cron: name="statsd" minute="*" job="/opt/statsd/influxdb"
